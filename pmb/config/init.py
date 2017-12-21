@@ -149,7 +149,7 @@ def ask_for_device(args):
 
 def ask_for_qemu_native_mesa_driver(args, device, arch_native):
     # Native Qemu device selected? (e.g. qemu-amd64 on x86_64)
-    if not pmb.parse.arch.qemu_check_device(device. arch_native):
+    if not pmb.parse.arch.qemu_check_device(device, arch_native):
         return None
 
     drivers = pmb.config.qemu_native_mesa_drivers
@@ -212,7 +212,7 @@ def frontend(args):
 
     # Qemu mesa driver
     if cfg["pmbootstrap"]["device"].startswith("qemu-"):
-        driver = ask_for_qemu_native_mesa_driver(args, device, args.native)
+        driver = ask_for_qemu_native_mesa_driver(args, device, args.arch_native)
         if driver:
             cfg["pmbootstrap"]["qemu_native_mesa_driver"] = driver
 
