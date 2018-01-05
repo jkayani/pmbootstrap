@@ -1,0 +1,85 @@
+# Kernel config based on: arch/arm/configs/(CHANGEME!)
+pkgname="linux-samsung-t679"
+pkgver=2.6.35
+pkgrel=0
+pkgdesc="Samsung Samsung Exhibit II 4G kernel fork"
+arch="armhf"
+_carch="arm"
+_flavor="samsung-t679"
+url="https://kernel.org"
+license="GPL2"
+options="!strip !check !tracedeps"
+makedepends="perl sed installkernel bash gmp-dev bc linux-headers elfutils-dev"
+HOSTCC="${CC:-gcc}"
+HOSTCC="${HOSTCC#${CROSS_COMPILE}}"
+
+# Source
+_repository="exhibit-kernel"
+_commit="09515030307d2b2ea02486ccfd5016dd367d2d94"
+_config="config-${_flavor}.${arch}"
+
+source="
+    $pkgname-$_commit.tar.gz::https://github.com/jkayani/${_repository}/archive/${_commit}.tar.gz	
+	00_compiler-gcc.h.patch
+    01_extern_static.patch
+    02_timeconst.pl.patch 
+    $_config
+	compiler-gcc6.h
+"
+builddir="$srcdir/${_repository}-${_commit}"
+
+prepare() {
+	default_prepare
+
+	# gcc6 support
+	cp -v "$srcdir/compiler-gcc6.h" "$builddir/include/linux/"
+
+	# Remove -Werror from all makefiles
+	find . -type f -name Makefile -print0 | \
+		xargs -0 sed -i 's/-Werror-/-W/g'
+	find . -type f -name Makefile -print0 | \
+		xargs -0 sed -i 's/-Werror//g'
+
+	# Prepare kernel config ('yes ""' for kernels lacking olddefconfig)
+	cp "$srcdir"/$_config "$builddir"/.config
+	yes "" | make ARCH="$_carch" HOSTCC="$HOSTCC" oldconfig
+}
+
+menuconfig() {
+	cd "$builddir"
+	make ARCH="$_carch" menuconfig
+	cp .config "$startdir"/$_config
+}
+
+build() {
+	unset LDFLAGS
+	make ARCH="$_carch" CC="${CC:-gcc}" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+}
+
+package() {
+	# kernel.release
+	install -D "$builddir/include/config/kernel.release" \
+		"$pkgdir/usr/share/kernel/$_flavor/kernel.release"
+
+	# zImage (find the right one)
+	cd "$builddir/arch/$_carch/boot"
+	_target="$pkgdir/boot/vmlinuz-$_flavor"
+	for _zimg in zImage-dtb Image.gz-dtb *zImage Image; do
+		[ -e "$_zimg" ] || continue
+		msg "zImage found: $_zimg"
+		install -Dm644 "$_zimg" "$_target"
+		break
+	done
+	if ! [ -e "$_target" ]; then
+		error "Could not find zImage in $PWD!"
+		return 1
+	fi
+}
+
+sha512sums="3dd509c5ca01c26523579548795c2bc3e36525a5cce168b5ad835ea6a3c5befb156198465f3ba6bc8e0ac6967d7d0f4372660915d3a5b2ed1d0eeb63debda362  linux-samsung-t679-09515030307d2b2ea02486ccfd5016dd367d2d94.tar.gz
+b452286a062a04f55b6c43cc169d09a6bee62939e856f7f29c021afc8255033dbc46e3f82693d47725e9f86a362dcafad97fcb36a7de50f38cdd267758e03714  00_compiler-gcc.h.patch
+8381b66436006373867459d11ba1a495a979af8f585f738321497561050e09dd742d7665af1e9a9a22b20ade3df4380f4ea01603667f83e55dffa3034d7369bf  01_extern_static.patch
+c560bc434d1b66dffbc4facb60012da8d3273bf8eddbb04e9aa7efa55aa274fe0f3f37ff2e09bc97c5e92e95d2321f724a50834a28a68c6a70efb170867e0c24  02_timeconst.pl.patch
+632dc88513bc25fe15c7dde39628e927f286ce3776f87f36dd3d6e40cd5a97436a872abeb03f32ae866f88e2fc216001abd866f31c1e77eddf11beb10bbfbca2  config-samsung-t679.armhf
+d80980e9474c82ba0ef1a6903b434d8bd1b092c40367ba543e72d2c119301c8b2d05265740e4104ca1ac5d15f6c4aa49e8776cb44264a9a28dc551e0d1850dcc  compiler-gcc6.h"

@@ -1,0 +1,22 @@
+# Reference: <https://postmarketos.org/devicepkg>
+pkgname="device-samsung-t679"
+pkgdesc="Samsung Samsung Exhibit II 4G"
+pkgver=0.1
+pkgrel=0
+url="https://postmarketos.org"
+license="MIT"
+arch="noarch"
+options="!check"
+depends="linux-samsung-t679 mkbootimg"
+makedepends="devicepkg-dev"
+source="deviceinfo"
+
+build() {
+	devicepkg_build $startdir $pkgname
+}
+
+package() {
+	devicepkg_package $startdir $pkgname
+}
+
+sha512sums="551e9a73b6bcdccf62728ef2240faed787531e020d1c4547f9d9ec7dd96a87d5220eef06d145c275d5e126eed8eb8144d9ba4f7ce20efcb7bf1389da604a8a57  deviceinfo"

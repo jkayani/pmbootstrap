@@ -1,0 +1,21 @@
+Compilation Error: "Variable used before definition"
+
+This hack is GCC specific, and was proposed for removal w. this patch: 
+https://patchwork.kernel.org/patch/1655621/. 
+That patch didn't apply cleanly to this kernel version. 
+
+Since this is GCC6, the macro isn't included (it is for GCC4 and GCC3), so we include it ourselves.
+---
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 0da5b18..a76ec58 100755
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -11,6 +11,8 @@
+ /* The "volatile" is due to gcc bugs */
+ #define barrier() __asm__ __volatile__("": : :"memory")
+ 
++#define uninitialized_var(x) x = x
++
+ /*
+  * This macro obfuscates arithmetic on a variable address so that gcc
+  * shouldn't recognize the original var, and make assumptions about it.
